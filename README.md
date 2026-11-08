@@ -23,5 +23,3 @@ NOVA MISSION COMMAND is a comprehensive space mission design and simulation soft
 1. Run `./install_unix.sh`
 2. Run `./start_unix.sh`
 
-## License
-MIT License
