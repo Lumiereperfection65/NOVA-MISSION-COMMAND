@@ -1,6 +1,16 @@
 "use client";
 import React, { useState } from 'react';
-import { Rocket, Shield, Activity, Cpu, Globe, Database, Award, Terminal } from 'lucide-react';
+import { Rocket, Shield, Activity, Cpu, Globe, Terminal } from 'lucide-react';
+import MissionBuilder from '@/components/mission-builder/MissionBuilder';
+import { API_BASE_URL } from '@/lib/mission/api';
+
+const NAV_ITEMS = [
+  { id: 'dashboard', label: 'Dashboard', icon: Activity },
+  { id: 'builder', label: 'Mission Builder', icon: Rocket },
+  { id: 'spacecraft', label: 'Spacecraft Designer', icon: Cpu },
+  { id: 'orbit', label: 'Orbit Simulator', icon: Globe },
+  { id: 'control', label: 'Mission Control', icon: Shield },
+];
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -9,7 +19,7 @@ export default function Home() {
 
   const runSim = async () => {
     try {
-      const res = await fetch('http://localhost:8000/api/simulate', {
+      const res = await fetch(`${API_BASE_URL}/api/simulate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -37,28 +47,41 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
-      <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur px-6 py-4 flex items-center justify-between">
+      <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur px-4 sm:px-6 py-4 flex items-center justify-between gap-3">
         <div className="flex items-center space-x-3">
-          <Rocket className="h-8 w-8 text-cyan-400 animate-pulse" />
+          <Rocket className="h-7 w-7 sm:h-8 sm:w-8 text-cyan-400 animate-pulse shrink-0" />
           <div>
-            <h1 className="text-xl font-bold tracking-wider text-cyan-400">NOVA MISSION COMMAND</h1>
-            <p className="text-xs text-slate-400">NASA Space Apps Challenge 2026 • Nova Tech Africa</p>
+            <h1 className="text-base sm:text-xl font-bold tracking-wider text-cyan-400">NOVA MISSION COMMAND</h1>
+            <p className="hidden sm:block text-xs text-slate-400">NASA Space Apps Challenge 2026 • Nova Tech Africa</p>
           </div>
         </div>
         <div className="flex items-center space-x-4">
-          <span className="px-3 py-1 bg-cyan-950 border border-cyan-700 text-cyan-300 rounded text-xs font-mono">SYSTEM READY</span>
+          <span className="whitespace-nowrap px-3 py-1 bg-cyan-950 border border-cyan-700 text-cyan-300 rounded text-xs font-mono">SYSTEM READY</span>
         </div>
       </header>
 
-      <div className="flex flex-1">
-        <aside className="w-64 border-r border-slate-800 bg-slate-900/30 p-4 space-y-2">
-          {[
-            { id: 'dashboard', label: 'Dashboard', icon: Activity },
-            { id: 'builder', label: 'Mission Builder', icon: Rocket },
-            { id: 'spacecraft', label: 'Spacecraft Designer', icon: Cpu },
-            { id: 'orbit', label: 'Orbit Simulator', icon: Globe },
-            { id: 'control', label: 'Mission Control', icon: Shield },
-          ].map(item => {
+      {/* Mobile navigation */}
+      <nav aria-label="Modules" className="lg:hidden border-b border-slate-800 bg-slate-900/30 overflow-x-auto">
+        <div className="flex min-w-max gap-1 px-2 py-2">
+          {NAV_ITEMS.map(item => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${activeTab === item.id ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30' : 'text-slate-400 border border-transparent hover:text-slate-200'}`}
+              >
+                <Icon className="h-4 w-4" />
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </nav>
+
+      <div className="flex flex-1 min-w-0">
+        <aside className="hidden lg:block w-64 shrink-0 border-r border-slate-800 bg-slate-900/30 p-4 space-y-2">
+          {NAV_ITEMS.map(item => {
             const Icon = item.icon;
             return (
               <button
@@ -73,10 +96,10 @@ export default function Home() {
           })}
         </aside>
 
-        <section className="flex-1 p-8 overflow-y-auto">
+        <section className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 overflow-y-auto">
           {activeTab === 'dashboard' && (
             <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-slate-900/60 border border-slate-800 p-5 rounded-xl">
                   <p className="text-xs text-slate-400 uppercase tracking-wider">Active Missions</p>
                   <p className="text-3xl font-bold text-cyan-400 mt-2">1</p>
@@ -91,7 +114,7 @@ export default function Home() {
                 </div>
                 <div className="bg-slate-900/60 border border-slate-800 p-5 rounded-xl">
                   <p className="text-xs text-slate-400 uppercase tracking-wider">Telemetry Link</p>
-                  <p className="text-3xl font-bold text-teal-400 mt-2">OPTIMAL</P>
+                  <p className="text-3xl font-bold text-teal-400 mt-2">OPTIMAL</p>
                 </div>
               </div>
 
@@ -128,7 +151,16 @@ export default function Home() {
             </div>
           )}
 
-          {activeTab !== 'dashboard' && (
+          {activeTab === 'builder' && (
+            <MissionBuilder
+              onLaunched={(result, name) => {
+                setSimulationResult(result);
+                setMissionName(name);
+              }}
+            />
+          )}
+
+          {activeTab !== 'dashboard' && activeTab !== 'builder' && (
             <div className="flex flex-col items-center justify-center h-96 text-slate-500">
               <Terminal className="h-12 w-12 mb-4 animate-bounce text-cyan-500/50" />
               <p className="text-lg font-medium text-slate-300">Module [{activeTab.toUpperCase()}] Operational</p>
