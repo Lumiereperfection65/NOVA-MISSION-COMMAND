@@ -43,6 +43,8 @@ class NovaMissionSimulationAdapter(SimulationEngineAdapter):
                 launcher=configuration["launcher"],
                 orbit=configuration["orbit"],
                 budget_allocated=configuration["budget_allocated"],
+                communication=configuration.get("communication"),
+                resources=configuration.get("resources"),
             )
             return simulation.run_full_simulation()
         except SimulationExecutionError:
