@@ -1,0 +1,429 @@
+{
+  "info": {
+    "_postman_id": "bc44c733-9637-49b0-947a-a31278933181",
+    "name": "NOVA Mission Command API",
+    "description": "Local smoke tests and CRUD/simulation workflows for the NOVA Mission Command FastAPI backend. Set the collection variable baseUrl if the server is not running on http://127.0.0.1:8000. Run requests in order to populate missionId.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:8000",
+      "type": "string"
+    },
+    {
+      "key": "missionId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health and documentation",
+      "item": [
+        {
+          "name": "Health check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/health"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Health endpoint returns 200 and healthy status', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().status).to.eql('healthy');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "System status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/system/status"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('System status reports database and simulation engine', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var body = pm.response.json();",
+                  "    pm.expect(body.database).to.have.property('available', true);",
+                  "    pm.expect(body.simulation_engine).to.have.property('available');",
+                  "    pm.expect(body.simulation_engine.mode).to.be.oneOf(['live', 'mock']);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "OpenAPI schema",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/openapi.json"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('OpenAPI contains the mission and simulation routes', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var paths = pm.response.json().paths;",
+                  "    pm.expect(paths).to.have.property('/missions');",
+                  "    pm.expect(paths).to.have.property('/missions/{mission_id}/simulate');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Catalogs",
+      "item": [
+        {
+          "name": "List launchers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/catalog/launchers"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Launcher catalog is available', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json()).to.be.an('array').that.is.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List instruments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/catalog/instruments"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Instrument catalog is available', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json()).to.be.an('array').that.is.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Missions",
+      "item": [
+        {
+          "name": "List missions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/missions?page=1&page_size=20&status=planned",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "missions"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "20"
+                },
+                {
+                  "key": "status",
+                  "value": "planned"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Mission list returns paginated data', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var body = pm.response.json();",
+                  "    pm.expect(body.items).to.be.an('array');",
+                  "    pm.expect(body).to.have.property('total');",
+                  "    pm.expect(body).to.have.property('page_size');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create mission",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Lunar Explorer\",\n  \"description\": \"Mission created by the NOVA API Postman collection.\",\n  \"mission_type\": \"exploration\",\n  \"destination\": \"Moon\",\n  \"launch_date\": \"2027-06-12\",\n  \"duration\": 30,\n  \"status\": \"planned\",\n  \"configuration\": {\n    \"budget_allocated\": 200.0,\n    \"difficulty\": \"Intermediate\",\n    \"spacecraft\": {\n      \"base_mass\": 200.0,\n      \"fuel_mass\": 400.0,\n      \"solar_power_generation\": 300.0,\n      \"base_power_consumption\": 60.0,\n      \"cost\": 50.0\n    },\n    \"instruments\": [\n      {\n        \"name\": \"High-Res Optical Camera\",\n        \"mass\": 15.0,\n        \"cost\": 12.0,\n        \"power_consumption\": 20.0,\n        \"utility_score\": 85.0\n      }\n    ],\n    \"launcher\": {\n      \"name\": \"Nova-1 Light\",\n      \"payload_capacity\": 1000.0,\n      \"cost\": 50.0,\n      \"reliability\": 0.95\n    },\n    \"orbit\": {\n      \"altitude_km\": 100.0,\n      \"inclination_deg\": 45.0\n    }\n  }\n}"
+            },
+            "url": "{{baseUrl}}/missions"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Mission is created and its ID is saved', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    var body = pm.response.json();",
+                  "    pm.expect(body).to.have.property('id');",
+                  "    pm.expect(body.name).to.eql('Postman Lunar Explorer');",
+                  "    pm.collectionVariables.set('missionId', body.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get created mission",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/missions/{{missionId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Mission can be retrieved by ID', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().id).to.eql(pm.collectionVariables.get('missionId'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update mission",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Lunar Explorer Updated\",\n  \"status\": \"ready\"\n}"
+            },
+            "url": "{{baseUrl}}/missions/{{missionId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Mission update preserves and changes fields', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var body = pm.response.json();",
+                  "    pm.expect(body.name).to.eql('Postman Lunar Explorer Updated');",
+                  "    pm.expect(body.status).to.eql('ready');",
+                  "    pm.expect(body.destination).to.eql('Moon');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Simulate mission (live or explicitly labeled mock)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/missions/{{missionId}}/simulate"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Simulation response identifies the engine and mock mode', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var body = pm.response.json();",
+                  "    pm.expect(body.mission_id).to.eql(pm.collectionVariables.get('missionId'));",
+                  "    pm.expect(body.engine_mode).to.be.oneOf(['live', 'mock']);",
+                  "    pm.expect(body.mock).to.eql(body.engine_mode === 'mock');",
+                  "    pm.expect(body.result.mock).to.eql(body.mock);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete mission",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/missions/{{missionId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Mission deletion returns 204', function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Deleted mission returns 404",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/missions/{{missionId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Deleted mission is no longer available', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "    pm.expect(pm.response.json().error.code).to.eql('MISSION_NOT_FOUND');",
+                  "});",
+                  "pm.collectionVariables.unset('missionId');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Invalid mission payload returns 422",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"\",\n  \"mission_type\": \"not_a_mission_type\",\n  \"destination\": \"Moon\",\n  \"duration\": 0\n}"
+            },
+            "url": "{{baseUrl}}/missions"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Invalid mission data is rejected with a structured 422 error', function () {",
+                  "    pm.response.to.have.status(422);",
+                  "    pm.expect(pm.response.json().error.code).to.eql('VALIDATION_ERROR');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Legacy simulation compatibility",
+      "item": [
+        {
+          "name": "Run legacy direct simulation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Legacy Simulation\",\n  \"destination\": \"Moon\",\n  \"duration_days\": 30,\n  \"difficulty\": \"Intermediate\",\n  \"budget_allocated\": 200.0,\n  \"spacecraft\": {\n    \"base_mass\": 200.0,\n    \"fuel_mass\": 400.0,\n    \"solar_power_generation\": 300.0,\n    \"base_power_consumption\": 60.0,\n    \"cost\": 50.0\n  },\n  \"instruments\": [\n    {\n      \"name\": \"High-Res Optical Camera\",\n      \"mass\": 15.0,\n      \"cost\": 12.0,\n      \"power_consumption\": 20.0,\n      \"utility_score\": 85.0\n    }\n  ],\n  \"launcher\": {\n    \"name\": \"Nova-1 Light\",\n    \"payload_capacity\": 1000.0,\n    \"cost\": 50.0,\n    \"reliability\": 0.95\n  },\n  \"orbit\": {\n    \"altitude_km\": 100.0,\n    \"inclination_deg\": 45.0\n  }\n}"
+            },
+            "url": "{{baseUrl}}/api/simulate"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Legacy simulation endpoint returns explicit engine metadata', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var body = pm.response.json();",
+                  "    pm.expect(body).to.have.property('mission_status');",
+                  "    pm.expect(body.engine_mode).to.be.oneOf(['live', 'mock']);",
+                  "    pm.expect(body.mock).to.eql(body.engine_mode === 'mock');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
