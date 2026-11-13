@@ -17,3 +17,6 @@ __pycache__/
 .venv/
 venv/
 database/*.db
+
+# Review pipeline (kept locally, not pushed to remote)
+reviews/
