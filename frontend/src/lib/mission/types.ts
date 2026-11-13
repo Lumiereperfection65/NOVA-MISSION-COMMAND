@@ -109,21 +109,29 @@ export interface MissionRequest {
   orbit: { altitude_km: number; inclination_deg: number };
 }
 
-/** Response returned by POST /api/simulate. */
+/**
+ * Response returned by POST /api/simulate.
+ * When the engine rejects the configuration, mission_status is 'INVALID' and the
+ * numeric fields are null.
+ */
 export interface SimulationResult {
-  mission_status: 'SUCCESS' | 'FAILED';
+  mission_status: 'SUCCESS' | 'FAILED' | 'INVALID';
   score: number;
-  total_mass_kg: number;
-  payload_capacity_kg: number;
-  total_cost_m_usd: number;
-  budget_allocated_m_usd: number;
-  power_balance: { generation: number; consumption: number; balance: number; is_viable: boolean };
+  total_mass_kg: number | null;
+  payload_capacity_kg: number | null;
+  total_cost_m_usd: number | null;
+  budget_allocated_m_usd: number | null;
+  power_balance: { generation: number; consumption: number; balance: number; is_viable: boolean } | null;
   orbit: {
     altitude_km: number;
     inclination_deg: number;
     orbital_period_minutes: number;
     orbital_velocity_kms: number;
     radiation_exposure_level: string;
-  };
+  } | null;
   recommendations: string[];
+  /** Enriched fields from the modular engine (optional, absent in offline estimates). */
+  risk_level?: string;
+  risk_score?: number;
+  warnings?: string[];
 }

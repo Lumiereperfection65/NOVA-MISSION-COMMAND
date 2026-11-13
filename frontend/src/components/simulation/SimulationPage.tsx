@@ -19,7 +19,7 @@ const QUICK_TEST: Omit<MissionRequest, 'name'> = {
   orbit: { altitude_km: 100.0, inclination_deg: 45.0 },
 };
 
-const n = (v: number | undefined, d = 1) => (typeof v === 'number' && Number.isFinite(v) ? v.toLocaleString('fr-FR', { maximumFractionDigits: d }) : '—');
+const n = (v: number | null | undefined, d = 1) => (typeof v === 'number' && Number.isFinite(v) ? v.toLocaleString('fr-FR', { maximumFractionDigits: d }) : '—');
 
 function Metric({ label, value, tone }: { label: string; value: string; tone?: 'good' | 'bad' }) {
   return (
@@ -32,13 +32,17 @@ function Metric({ label, value, tone }: { label: string; value: string; tone?: '
 
 export function ResultView({ result, missionName }: { result: SimulationResult; missionName: string }) {
   const ok = result.mission_status === 'SUCCESS';
+  const label = ok ? 'SUCCÈS' : result.mission_status === 'INVALID' ? 'CONFIGURATION INVALIDE' : 'ÉCHEC';
   return (
     <div>
       <div className="flex flex-wrap items-center gap-4">
         <span className={`rounded-lg border px-3 py-1 font-display text-sm font-bold ${ok ? 'border-green-600 bg-green-950/40 text-green-300' : 'border-rose-600 bg-rose-950/40 text-rose-300'}`}>
-          {ok ? 'SUCCÈS' : 'ÉCHEC'}
+          {label}
         </span>
         <span className="text-lg font-semibold text-white">{missionName}</span>
+        {result.risk_level && (
+          <span className="rounded-lg border border-nova-line px-2.5 py-1 text-xs uppercase tracking-wider text-slate-300">Risque : {result.risk_level}</span>
+        )}
         <span className="ml-auto text-slate-400">Score <span className="ml-1 font-display text-3xl font-bold text-nova-sky">{n(result.score)}</span></span>
       </div>
       <div className="mt-5 grid grid-cols-2 lg:grid-cols-3 gap-3">

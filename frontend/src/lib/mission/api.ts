@@ -28,7 +28,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       let detail = `${res.status} ${res.statusText}`;
       try {
         const body = await res.json();
-        if (body?.detail) detail = typeof body.detail === 'string' ? body.detail : JSON.stringify(body.detail);
+        // New backend format: { error: { code, message, details } }; FastAPI default: { detail }.
+        if (body?.error?.message) detail = body.error.message;
+        else if (body?.detail) detail = typeof body.detail === 'string' ? body.detail : JSON.stringify(body.detail);
       } catch {
         /* response had no JSON body */
       }

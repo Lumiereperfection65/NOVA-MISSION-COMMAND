@@ -44,7 +44,7 @@ export default function Home() {
     setLastMissionName(name);
     const ok = result.mission_status === 'SUCCESS';
     setActivities(list => [
-      { id: `sim-${Date.now()}`, label: `Simulation ${ok ? 'réussie' : 'échouée'} : ${name}`, at: Date.now(), tone: ok ? 'blue' : 'red' },
+      { id: `sim-${Date.now()}`, label: `Simulation ${ok ? 'réussie' : result.mission_status === 'INVALID' ? 'invalide' : 'échouée'} : ${name}`, at: Date.now(), tone: ok ? 'blue' : 'red' },
       ...list,
     ]);
   };

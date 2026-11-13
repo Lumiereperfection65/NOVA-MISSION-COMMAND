@@ -103,5 +103,5 @@ export function Stat({ label, value, tone = 'default' }: {
   );
 }
 
-export const fmt = (n: number, digits = 1) =>
-  Number.isFinite(n) ? n.toLocaleString('en-US', { maximumFractionDigits: digits }) : '—';
+export const fmt = (n: number | null | undefined, digits = 1) =>
+  typeof n === 'number' && Number.isFinite(n) ? n.toLocaleString('en-US', { maximumFractionDigits: digits }) : '—';
