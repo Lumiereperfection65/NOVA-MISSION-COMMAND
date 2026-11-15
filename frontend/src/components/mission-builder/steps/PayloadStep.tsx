@@ -20,10 +20,10 @@ export default function PayloadStep({ draft, update, issuesFor, touch, instrumen
 
   return (
     <Panel
-      title="Payload & scientific instruments"
+      title="Charge utile et instruments scientifiques"
       subtitle={spacecraft
-        ? `${draft.instrumentIds.length} of ${spacecraft.max_instruments} slots used on the ${spacecraft.name}.`
-        : 'Select a spacecraft first to know how many instrument slots are available.'}
+        ? `Emplacements utilisés : ${draft.instrumentIds.length} sur ${spacecraft.max_instruments} (${spacecraft.name}).`
+        : "Sélectionnez d'abord une plateforme pour connaître le nombre d'emplacements disponibles."}
     >
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3" role="group" aria-label="Instruments">
         {instruments.map(inst => {
@@ -37,13 +37,13 @@ export default function PayloadStep({ draft, update, issuesFor, touch, instrumen
               onClick={() => toggle(inst.id)}
             >
               <div className="flex items-center gap-2 pr-6">
-                <Microscope className="h-5 w-5 text-cyan-400 shrink-0" aria-hidden />
+                <Microscope className="h-5 w-5 text-nova-sky shrink-0" aria-hidden />
                 <p className="font-semibold text-slate-100">{inst.name}</p>
               </div>
               <div className="mt-3 grid grid-cols-4 gap-2">
-                <Stat label="Mass" value={`${fmt(inst.mass)} kg`} />
-                <Stat label="Power" value={`${fmt(inst.power_consumption)} W`} />
-                <Stat label="Cost" value={`$${fmt(inst.cost)}M`} />
+                <Stat label="Masse" value={`${fmt(inst.mass)} kg`} />
+                <Stat label="Puissance" value={`${fmt(inst.power_consumption)} W`} />
+                <Stat label="Coût" value={`${fmt(inst.cost)} M$`} />
                 <Stat label="Science" value={fmt(inst.utility_score, 0)} tone="good" />
               </div>
             </SelectableCard>
@@ -51,7 +51,7 @@ export default function PayloadStep({ draft, update, issuesFor, touch, instrumen
         })}
       </div>
       {full && Number.isFinite(slots) && (
-        <p className="text-xs text-slate-400 mt-3">All instrument slots are used — deselect one to choose another.</p>
+        <p className="text-xs text-slate-400 mt-3">Tous les emplacements sont occupés : désélectionnez un instrument pour en choisir un autre.</p>
       )}
       <IssueList issues={[...issuesFor('instruments'), ...issuesFor('power')]} />
     </Panel>

@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { BarChart3, Loader2, Play, Rocket, WifiOff } from 'lucide-react';
 import { missionApi } from '@/lib/mission/api';
 import type { MissionRequest, SimulationResult } from '@/lib/mission/types';
+import { ResultView } from '@/components/mission-builder/ui';
 
 /** Reference mission used by the quick engine test (same payload as the original dashboard test). */
 const QUICK_TEST: Omit<MissionRequest, 'name'> = {
@@ -18,49 +19,6 @@ const QUICK_TEST: Omit<MissionRequest, 'name'> = {
   launcher: { name: 'Nova-1 Light', payload_capacity: 1000.0, cost: 50.0 },
   orbit: { altitude_km: 100.0, inclination_deg: 45.0 },
 };
-
-const n = (v: number | null | undefined, d = 1) => (typeof v === 'number' && Number.isFinite(v) ? v.toLocaleString('fr-FR', { maximumFractionDigits: d }) : '—');
-
-function Metric({ label, value, tone }: { label: string; value: string; tone?: 'good' | 'bad' }) {
-  return (
-    <div className="rounded-xl bg-white/[0.03] border border-nova-line/60 px-4 py-3">
-      <p className="text-xs uppercase tracking-wider text-slate-400">{label}</p>
-      <p className={`mt-1 font-display text-xl font-bold ${tone === 'good' ? 'text-green-400' : tone === 'bad' ? 'text-rose-400' : 'text-white'}`}>{value}</p>
-    </div>
-  );
-}
-
-export function ResultView({ result, missionName }: { result: SimulationResult; missionName: string }) {
-  const ok = result.mission_status === 'SUCCESS';
-  const label = ok ? 'SUCCÈS' : result.mission_status === 'INVALID' ? 'CONFIGURATION INVALIDE' : 'ÉCHEC';
-  return (
-    <div>
-      <div className="flex flex-wrap items-center gap-4">
-        <span className={`rounded-lg border px-3 py-1 font-display text-sm font-bold ${ok ? 'border-green-600 bg-green-950/40 text-green-300' : 'border-rose-600 bg-rose-950/40 text-rose-300'}`}>
-          {label}
-        </span>
-        <span className="text-lg font-semibold text-white">{missionName}</span>
-        {result.risk_level && (
-          <span className="rounded-lg border border-nova-line px-2.5 py-1 text-xs uppercase tracking-wider text-slate-300">Risque : {result.risk_level}</span>
-        )}
-        <span className="ml-auto text-slate-400">Score <span className="ml-1 font-display text-3xl font-bold text-nova-sky">{n(result.score)}</span></span>
-      </div>
-      <div className="mt-5 grid grid-cols-2 lg:grid-cols-3 gap-3">
-        <Metric label="Masse totale" value={`${n(result.total_mass_kg)} kg`} />
-        <Metric label="Capacité lanceur" value={`${n(result.payload_capacity_kg, 0)} kg`} />
-        <Metric label="Coût total" value={`${n(result.total_cost_m_usd)} M$`} />
-        <Metric label="Bilan énergétique" value={`${n(result.power_balance?.balance)} W`} tone={result.power_balance?.is_viable ? 'good' : 'bad'} />
-        <Metric label="Période orbitale" value={`${n(result.orbit?.orbital_period_minutes)} min`} />
-        <Metric label="Vitesse orbitale" value={`${n(result.orbit?.orbital_velocity_kms, 2)} km/s`} />
-      </div>
-      {result.recommendations?.length > 0 && (
-        <ul className="mt-4 list-disc pl-5 text-slate-300 space-y-1">
-          {result.recommendations.map(r => <li key={r}>{r}</li>)}
-        </ul>
-      )}
-    </div>
-  );
-}
 
 export default function SimulationPage({ lastResult, lastMissionName, onOpenBuilder, onSimulated }: {
   lastResult: SimulationResult | null;

@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from 'react';
 import { Plus, X } from 'lucide-react';
-import { DESTINATIONS, DIFFICULTIES, OBJECTIVE_SUGGESTIONS } from '@/lib/mission/catalog';
+import { DESTINATIONS, DESTINATION_LABELS, DIFFICULTIES, DIFFICULTY_LABELS, OBJECTIVE_SUGGESTIONS } from '@/lib/mission/catalog';
 import type { Difficulty, MissionDraft, ValidationIssue } from '@/lib/mission/types';
 import { Field, IssueList, Panel, inputClass } from '../ui';
 
@@ -26,10 +26,10 @@ export default function MissionStep({ draft, update, issuesFor, touch }: StepPro
   const addObjective = (raw: string) => {
     const text = raw.trim();
     touch('objectives');
-    if (text.length < 3) return setObjectiveError('An objective must be at least 3 characters.');
-    if (text.length > 120) return setObjectiveError('An objective must be 120 characters or fewer.');
-    if (draft.objectives.some(o => o.toLowerCase() === text.toLowerCase())) return setObjectiveError('This objective is already listed.');
-    if (draft.objectives.length >= MAX_OBJECTIVES) return setObjectiveError(`You can define up to ${MAX_OBJECTIVES} objectives.`);
+    if (text.length < 3) return setObjectiveError('Un objectif doit contenir au moins 3 caractères.');
+    if (text.length > 120) return setObjectiveError('Un objectif doit contenir au plus 120 caractères.');
+    if (draft.objectives.some(o => o.toLowerCase() === text.toLowerCase())) return setObjectiveError('Cet objectif figure déjà dans la liste.');
+    if (draft.objectives.length >= MAX_OBJECTIVES) return setObjectiveError(`Vous pouvez définir jusqu'à ${MAX_OBJECTIVES} objectifs.`);
     setObjectiveError(null);
     update({ objectives: [...draft.objectives, text] });
     setObjectiveInput('');
@@ -48,15 +48,15 @@ export default function MissionStep({ draft, update, issuesFor, touch }: StepPro
 
   return (
     <div className="space-y-6">
-      <Panel title="Mission identity" subtitle="Name your mission and define what it must achieve.">
+      <Panel title="Identité de la mission" subtitle="Nommez votre mission et définissez ce qu'elle doit accomplir.">
         <div className="space-y-5">
-          <Field id="mission-name" label="Mission name" hint="3–60 characters." issues={issuesFor('name')}>
+          <Field id="mission-name" label="Nom de la mission" hint="3 à 60 caractères." issues={issuesFor('name')}>
             <input
               id="mission-name"
               type="text"
               value={draft.name}
               maxLength={80}
-              placeholder="e.g. Lunar Explorer Alpha"
+              placeholder="ex. : Lunar Explorer Alpha"
               onChange={e => update({ name: e.target.value })}
               onBlur={() => touch('name')}
               aria-invalid={hasErr('name')}
@@ -66,14 +66,14 @@ export default function MissionStep({ draft, update, issuesFor, touch }: StepPro
 
           <div>
             <label htmlFor="objective-input" className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-1.5">
-              Scientific objectives <span className="normal-case text-slate-500">({draft.objectives.length}/{MAX_OBJECTIVES})</span>
+              Objectifs scientifiques <span className="normal-case text-slate-500">({draft.objectives.length}/{MAX_OBJECTIVES})</span>
             </label>
             <div className="flex gap-2">
               <input
                 id="objective-input"
                 type="text"
                 value={objectiveInput}
-                placeholder="Describe an objective and press Enter"
+                placeholder="Saisissez un objectif…"
                 onChange={e => { setObjectiveInput(e.target.value); setObjectiveError(null); }}
                 onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addObjective(objectiveInput); } }}
                 className={inputClass(!!objectiveError || hasErr('objectives'))}
@@ -81,9 +81,9 @@ export default function MissionStep({ draft, update, issuesFor, touch }: StepPro
               <button
                 type="button"
                 onClick={() => addObjective(objectiveInput)}
-                className="shrink-0 inline-flex items-center gap-1 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm text-slate-200 transition-colors"
+                className="shrink-0 inline-flex items-center gap-1 px-3 rounded-xl border border-nova-sky/50 bg-nova-bg/40 text-sm text-slate-100 hover:border-nova-sky hover:bg-nova-blue/10 transition-colors"
               >
-                <Plus className="h-4 w-4" aria-hidden /> <span className="hidden sm:inline">Add</span>
+                <Plus className="h-4 w-4" aria-hidden /> <span className="hidden sm:inline">Ajouter</span>
               </button>
             </div>
             {objectiveError && <p className="text-xs text-rose-400 mt-1.5" role="alert">{objectiveError}</p>}
@@ -92,12 +92,12 @@ export default function MissionStep({ draft, update, issuesFor, touch }: StepPro
             {draft.objectives.length > 0 && (
               <ol className="mt-3 space-y-2">
                 {draft.objectives.map((o, idx) => (
-                  <li key={o} className="flex items-start gap-3 bg-slate-950/70 border border-slate-800 rounded-lg px-3 py-2">
-                    <span className="text-xs font-mono text-cyan-400 mt-0.5">{String(idx + 1).padStart(2, '0')}</span>
+                  <li key={o} className="flex items-start gap-3 bg-white/[0.03] border border-nova-line/60 rounded-lg px-3 py-2">
+                    <span className="text-xs font-mono text-nova-sky mt-0.5">{String(idx + 1).padStart(2, '0')}</span>
                     <span className="flex-1 text-sm text-slate-200 break-words">{o}</span>
                     <button
                       type="button"
-                      aria-label={`Remove objective ${o}`}
+                      aria-label={`Retirer l'objectif ${o}`}
                       onClick={() => update({ objectives: draft.objectives.filter(x => x !== o) })}
                       className="text-slate-500 hover:text-rose-400"
                     >
@@ -114,7 +114,7 @@ export default function MissionStep({ draft, update, issuesFor, touch }: StepPro
                   key={s}
                   type="button"
                   onClick={() => addObjective(s)}
-                  className="text-xs px-2.5 py-1 rounded-full border border-slate-700 text-slate-400 hover:border-cyan-500/50 hover:text-cyan-300 transition-colors"
+                  className="text-xs px-2.5 py-1 rounded-full border border-nova-line text-slate-300 hover:border-nova-sky/60 hover:text-nova-sky transition-colors"
                 >
                   + {s}
                 </button>
@@ -124,7 +124,7 @@ export default function MissionStep({ draft, update, issuesFor, touch }: StepPro
         </div>
       </Panel>
 
-      <Panel title="Destination" subtitle="Where is the mission going?">
+      <Panel title="Destination" subtitle="Où la mission doit-elle se rendre ?">
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3" role="radiogroup" aria-label="Destination">
           {DESTINATIONS.map(d => {
             const selected = d.id === draft.destinationId;
@@ -135,10 +135,10 @@ export default function MissionStep({ draft, update, issuesFor, touch }: StepPro
                 role="radio"
                 aria-checked={selected}
                 onClick={() => selectDestination(d.id)}
-                className={`text-left rounded-lg border p-3 transition-colors ${selected ? 'border-cyan-500/60 bg-cyan-500/10' : 'border-slate-800 bg-slate-950/60 hover:border-slate-600'}`}
+                className={`text-left rounded-xl border p-3 transition-colors ${selected ? 'border-nova-sky/70 bg-nova-blue/10' : 'border-nova-line/60 bg-white/[0.03] hover:border-nova-sky/40'}`}
               >
-                <p className={`text-sm font-semibold ${selected ? 'text-cyan-300' : 'text-slate-200'}`}>{d.name}</p>
-                <p className="text-xs text-slate-500 mt-1">{d.description}</p>
+                <p className={`text-sm font-semibold ${selected ? 'text-nova-sky' : 'text-slate-100'}`}>{DESTINATION_LABELS[d.id] ?? d.name}</p>
+                <p className="text-xs text-slate-400 mt-1">{d.description}</p>
               </button>
             );
           })}
@@ -146,9 +146,9 @@ export default function MissionStep({ draft, update, issuesFor, touch }: StepPro
         <IssueList issues={issuesFor('destination')} />
       </Panel>
 
-      <Panel title="Mission parameters">
+      <Panel title="Paramètres de la mission">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-          <Field id="duration" label="Duration (days)" hint="1 – 3,650 days." issues={issuesFor('duration_days')}>
+          <Field id="duration" label="Durée (jours)" hint="De 1 à 3 650 jours." issues={issuesFor('duration_days')}>
             <input
               id="duration" type="number" min={1} max={3650} step={1} inputMode="numeric"
               value={numValue(draft.duration_days)}
@@ -159,7 +159,7 @@ export default function MissionStep({ draft, update, issuesFor, touch }: StepPro
             />
           </Field>
 
-          <Field id="budget" label="Allocated budget (M USD)" hint="Total funding available for the mission." issues={issuesFor('budget_allocated')}>
+          <Field id="budget" label="Budget alloué (M$)" hint="Financement total disponible pour la mission." issues={issuesFor('budget_allocated')}>
             <input
               id="budget" type="number" min={1} max={10000} step={1} inputMode="decimal"
               value={numValue(draft.budget_allocated)}
@@ -170,7 +170,7 @@ export default function MissionStep({ draft, update, issuesFor, touch }: StepPro
             />
           </Field>
 
-          <Field id="altitude" label="Orbit altitude (km)" hint="Altitude of the operational orbit." issues={issuesFor('altitude_km')}>
+          <Field id="altitude" label="Altitude de l'orbite (km)" hint="Altitude de l'orbite opérationnelle." issues={issuesFor('altitude_km')}>
             <input
               id="altitude" type="number" min={50} max={40000} step={10} inputMode="decimal"
               value={numValue(draft.altitude_km)}
@@ -181,7 +181,7 @@ export default function MissionStep({ draft, update, issuesFor, touch }: StepPro
             />
           </Field>
 
-          <Field id="inclination" label="Inclination (°)" hint="0° equatorial, 90° polar." issues={issuesFor('inclination_deg')}>
+          <Field id="inclination" label="Inclinaison (°)" hint="0° : équatoriale, 90° : polaire." issues={issuesFor('inclination_deg')}>
             <input
               id="inclination" type="number" min={0} max={180} step={0.5} inputMode="decimal"
               value={numValue(draft.inclination_deg)}
@@ -193,8 +193,8 @@ export default function MissionStep({ draft, update, issuesFor, touch }: StepPro
           </Field>
 
           <div className="sm:col-span-2">
-            <span className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-1.5">Difficulty</span>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2" role="radiogroup" aria-label="Difficulty">
+            <span className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-1.5">Difficulté</span>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2" role="radiogroup" aria-label="Difficulté">
               {DIFFICULTIES.map(d => (
                 <button
                   key={d}
@@ -202,9 +202,9 @@ export default function MissionStep({ draft, update, issuesFor, touch }: StepPro
                   role="radio"
                   aria-checked={draft.difficulty === d}
                   onClick={() => update({ difficulty: d as Difficulty })}
-                  className={`py-2 rounded-lg text-sm border transition-colors ${draft.difficulty === d ? 'border-cyan-500/60 bg-cyan-500/10 text-cyan-300' : 'border-slate-800 text-slate-400 hover:border-slate-600'}`}
+                  className={`py-2 rounded-xl text-sm border transition-colors ${draft.difficulty === d ? 'border-nova-sky/70 bg-nova-blue/10 text-nova-sky' : 'border-nova-line/60 bg-white/[0.03] text-slate-300 hover:border-nova-sky/40 hover:text-white'}`}
                 >
-                  {d}
+                  {DIFFICULTY_LABELS[d]}
                 </button>
               ))}
             </div>

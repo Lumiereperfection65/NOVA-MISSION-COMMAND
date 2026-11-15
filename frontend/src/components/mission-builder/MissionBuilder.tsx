@@ -1,8 +1,9 @@
 "use client";
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Check, ChevronLeft, ChevronRight, ClipboardList, Cpu, Microscope, RotateCcw, Rocket, Target } from 'lucide-react';
 import { ApiHttpError, missionApi } from '@/lib/mission/api';
 import { DEFAULT_DRAFT, FALLBACK_INSTRUMENTS, FALLBACK_LAUNCHERS, SPACECRAFT_BUSES } from '@/lib/mission/catalog';
+import { changedDraftKeys, clearIssuesForDraftChange, readinessSummary, reviewBadgeState, toBuilderIssues, type BackendError } from '@/lib/mission/errors';
 import type { BuilderStep, Instrument, Launcher, MissionDraft, SimulationResult } from '@/lib/mission/types';
 import { buildMissionRequest, computeConstraints, estimateLocally, validateMission } from '@/lib/mission/validation';
 import ConstraintsPanel from './ConstraintsPanel';
@@ -15,11 +16,20 @@ import { fmt } from './ui';
 
 const STEPS: { id: BuilderStep; label: string; icon: React.ElementType }[] = [
   { id: 'mission', label: 'Mission', icon: Target },
-  { id: 'spacecraft', label: 'Spacecraft', icon: Cpu },
-  { id: 'launcher', label: 'Launcher', icon: Rocket },
-  { id: 'payload', label: 'Payload', icon: Microscope },
-  { id: 'review', label: 'Review & Launch', icon: ClipboardList },
+  { id: 'spacecraft', label: 'Plateforme', icon: Cpu },
+  { id: 'launcher', label: 'Lanceur', icon: Rocket },
+  { id: 'payload', label: 'Charge utile', icon: Microscope },
+  { id: 'review', label: 'Revue et lancement', icon: ClipboardList },
 ];
+
+/** Tooltip of the step badges; the two backend states are distinct from a local validation result. */
+const BADGE_TITLE: Record<'idle' | 'ok' | 'error' | 'refused' | 'failed', string | undefined> = {
+  idle: undefined,
+  ok: undefined,
+  error: undefined,
+  refused: 'Validée localement, mais refusée par le backend',
+  failed: "Validée localement, mais la simulation n'a pas abouti côté backend",
+};
 
 /** Constraint issues are shown as soon as they appear, without waiting for a touch. */
 const ALWAYS_VISIBLE = new Set(['mass', 'power', 'budget']);
@@ -41,6 +51,15 @@ export default function MissionBuilder({ onLaunched }: { onLaunched?: (result: S
   const [result, setResult] = useState<SimulationResult | null>(null);
   const [resultSource, setResultSource] = useState<ResultSource | null>(null);
   const [launchError, setLaunchError] = useState<string | null>(null);
+  /** Analysed refusal from the backend (HTTP error or malformed answer) for the last launch. */
+  const [backendError, setBackendError] = useState<BackendError | null>(null);
+  /**
+   * True once the saved draft has been read. Until then the draft is still DEFAULT_DRAFT and must
+   * not be saved: on mount (and twice under React Strict Mode) saving first would overwrite the
+   * stored draft before it is restored. A state, not a ref, so the save effect of the first render
+   * still sees `false` even though both effects run in the same commit.
+   */
+  const [restored, setRestored] = useState(false);
 
   // Restore a saved draft (per-browser convenience only).
   useEffect(() => {
@@ -50,15 +69,17 @@ export default function MissionBuilder({ onLaunched }: { onLaunched?: (result: S
     } catch {
       /* storage unavailable or corrupted: start from defaults */
     }
+    setRestored(true);
   }, []);
 
   useEffect(() => {
+    if (!restored) return;
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
     } catch {
       /* ignore */
     }
-  }, [draft]);
+  }, [draft, restored]);
 
   // Load catalogs from the backend; keep local fallbacks if it is offline.
   useEffect(() => {
@@ -84,13 +105,22 @@ export default function MissionBuilder({ onLaunched }: { onLaunched?: (result: S
   const ctx = useMemo(() => ({ draft, spacecraft, launcher, instruments }), [draft, spacecraft, launcher, instruments]);
   const constraints = useMemo(() => computeConstraints(ctx), [ctx]);
   const issues = useMemo(() => validateMission(ctx, constraints), [ctx, constraints]);
+  // Fields refused by the backend, shown next to the matching inputs until that value changes or the mission is relaunched.
+  const backendIssues = useMemo(() => toBuilderIssues(backendError), [backendError]);
+
+  // Latest draft, read by update() to tell a real change from re-selecting the same value.
+  const draftRef = useRef(draft);
+  draftRef.current = draft;
 
   const update = useCallback((patch: Partial<MissionDraft>) => {
+    const changedKeys = changedDraftKeys(draftRef.current, patch);
     setDraft(d => ({ ...d, ...patch }));
     // Any change invalidates a previous simulation result.
     setResult(null);
     setResultSource(null);
     setLaunchError(null);
+    // Only the backend issues tied to values that really changed become obsolete; the others stay visible.
+    setBackendError(e => clearIssuesForDraftChange(e, changedKeys));
   }, []);
 
   const touch = useCallback((field: string) => {
@@ -98,9 +128,11 @@ export default function MissionBuilder({ onLaunched }: { onLaunched?: (result: S
   }, []);
 
   const issuesFor = useCallback(
-    (field: string) =>
-      issues.filter(i => i.field === field && (ALWAYS_VISIBLE.has(field) || touched.has(field) || attempted.has(i.step) || step === 'review')),
-    [issues, touched, attempted, step],
+    (field: string) => [
+      ...issues.filter(i => i.field === field && (ALWAYS_VISIBLE.has(field) || touched.has(field) || attempted.has(i.step) || step === 'review')),
+      ...backendIssues.filter(i => i.field === field),
+    ],
+    [issues, backendIssues, touched, attempted, step],
   );
 
   const stepIndex = STEPS.findIndex(s => s.id === step);
@@ -111,9 +143,9 @@ export default function MissionBuilder({ onLaunched }: { onLaunched?: (result: S
   };
 
   const stepState = (s: BuilderStep) => {
-    const errs = issues.filter(i => i.step === s && i.severity === 'error').length;
+    const errs = [...issues, ...backendIssues].filter(i => i.step === s && i.severity === 'error').length;
     const seen = attempted.has(s) || s === step;
-    if (s === 'review') return issues.some(i => i.severity === 'error') ? 'idle' : 'ok';
+    if (s === 'review') return reviewBadgeState(issues.some(i => i.severity === 'error'), backendError);
     if (!seen) return 'idle';
     return errs > 0 ? 'error' : 'ok';
   };
@@ -126,6 +158,7 @@ export default function MissionBuilder({ onLaunched }: { onLaunched?: (result: S
 
     setLaunching(true);
     setLaunchError(null);
+    setBackendError(null);
     try {
       const res = await missionApi.simulate(payload);
       setResult(res);
@@ -133,12 +166,14 @@ export default function MissionBuilder({ onLaunched }: { onLaunched?: (result: S
       setApiStatus('online');
       onLaunched?.(res, payload.name);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
+      const message = err instanceof Error ? err.message : 'Erreur inconnue';
       if (err instanceof ApiHttpError) {
         // The backend is up but refused the configuration: show its feedback, no fake result.
+        // The draft is left untouched so the user can correct it.
         setResult(null);
         setResultSource(null);
         setLaunchError(message);
+        setBackendError(err.info);
       } else {
         const estimate = estimateLocally(payload, constraints);
         setApiStatus('offline');
@@ -153,51 +188,53 @@ export default function MissionBuilder({ onLaunched }: { onLaunched?: (result: S
   };
 
   const reset = () => {
-    if (typeof window !== 'undefined' && !window.confirm('Reset the whole mission configuration?')) return;
+    if (typeof window !== 'undefined' && !window.confirm('Réinitialiser toute la configuration de la mission ?')) return;
     setDraft(DEFAULT_DRAFT);
     setTouched(new Set());
     setAttempted(new Set());
     setResult(null);
     setResultSource(null);
     setLaunchError(null);
+    setBackendError(null);
     setStep('mission');
   };
 
   const stepProps = { draft, update, issuesFor, touch };
   const errorCount = issues.filter(i => i.severity === 'error').length;
+  const readiness = readinessSummary(errorCount, backendError);
 
   return (
     <div className="space-y-5">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-slate-100">Mission Builder</h2>
-          <p className="text-sm text-slate-400 mt-1">Design and configure your space mission before simulation.</p>
+          <h2 className="font-display text-3xl sm:text-4xl font-bold text-white">Conception de mission</h2>
+          <p className="mt-2 text-lg text-slate-300">Concevez et configurez votre mission spatiale avant la simulation.</p>
         </div>
         <div className="flex items-center gap-2">
           <span
-            className={`px-2.5 py-1 rounded text-[11px] font-mono border ${
-              apiStatus === 'online' ? 'bg-emerald-950/40 border-emerald-800 text-emerald-300'
-              : apiStatus === 'offline' ? 'bg-amber-950/40 border-amber-800 text-amber-300'
-              : 'bg-slate-900 border-slate-700 text-slate-400'
+            className={`px-2.5 py-1 rounded-lg text-[11px] font-mono border ${
+              apiStatus === 'online' ? 'bg-green-950/40 border-green-700 text-green-300'
+              : apiStatus === 'offline' ? 'bg-amber-950/30 border-amber-800/60 text-amber-300'
+              : 'bg-nova-panel/70 border-nova-line text-slate-400'
             }`}
-            title={apiStatus === 'offline' ? 'Using local catalog and offline estimates' : undefined}
+            title={apiStatus === 'offline' ? 'Catalogue local et estimations hors ligne' : undefined}
           >
-            API {apiStatus === 'online' ? 'ONLINE' : apiStatus === 'offline' ? 'OFFLINE · local mode' : 'CHECKING…'}
+            API {apiStatus === 'online' ? 'EN LIGNE' : apiStatus === 'offline' ? 'HORS LIGNE · mode local' : 'VÉRIFICATION…'}
           </span>
           <button
             type="button"
             onClick={reset}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-800 text-xs text-slate-400 hover:text-slate-200 hover:border-slate-600 transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-nova-line bg-nova-bg/40 text-xs text-slate-300 hover:text-white hover:border-nova-sky/50 hover:bg-nova-blue/10 transition-colors"
           >
-            <RotateCcw className="h-3.5 w-3.5" aria-hidden /> Reset
+            <RotateCcw className="h-3.5 w-3.5" aria-hidden /> Réinitialiser
           </button>
         </div>
       </div>
 
       {/* Stepper */}
-      <nav aria-label="Mission builder steps" className="-mx-1 overflow-x-auto">
-        <ol className="flex min-w-max sm:min-w-0 gap-1 px-1">
+      <nav aria-label="Étapes de conception de la mission" className="-mx-1 overflow-x-auto">
+        <ol className="flex min-w-max sm:min-w-0 sm:flex-wrap gap-1 px-1">
           {STEPS.map((s, idx) => {
             const Icon = s.icon;
             const state = stepState(s.id);
@@ -208,18 +245,25 @@ export default function MissionBuilder({ onLaunched }: { onLaunched?: (result: S
                   type="button"
                   onClick={() => goToStep(s.id)}
                   aria-current={active ? 'step' : undefined}
-                  className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm transition-colors ${
-                    active ? 'border-cyan-500/50 bg-cyan-500/10 text-cyan-300' : 'border-slate-800 bg-slate-900/40 text-slate-400 hover:text-slate-200'
+                  className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium transition-colors ${
+                    active
+                      ? 'border-nova-sky/60 bg-nova-blue/10 text-nova-sky shadow-[0_0_18px_-6px_rgba(43,140,255,0.7)]'
+                      : 'border-nova-line/70 bg-nova-panel/60 text-slate-300 hover:text-white hover:border-nova-sky/40'
                   }`}
                 >
                   <span
-                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-mono ${
-                      state === 'error' ? 'bg-rose-500/20 text-rose-300'
-                      : state === 'ok' && !active ? 'bg-emerald-500/20 text-emerald-300'
-                      : active ? 'bg-cyan-500/20 text-cyan-300' : 'bg-slate-800 text-slate-400'
+                    title={BADGE_TITLE[state]}
+                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-display font-semibold ${
+                      state === 'refused' ? 'bg-rose-500/20 text-rose-300 ring-1 ring-rose-400/70'
+                      : state === 'failed' ? 'bg-amber-500/20 text-amber-300 ring-1 ring-amber-400/70'
+                      : state === 'error' ? 'bg-rose-500/20 text-rose-300'
+                      : state === 'ok' && !active ? 'bg-green-500/20 text-green-300'
+                      : active ? 'bg-nova-blue/25 text-nova-sky' : 'bg-nova-line/60 text-slate-300'
                     }`}
                   >
-                    {state === 'ok' && !active ? <Check className="h-3.5 w-3.5" aria-label="complete" /> : state === 'error' ? '!' : idx + 1}
+                    {state === 'refused' || state === 'failed'
+                      ? <span aria-label={BADGE_TITLE[state]}>!</span>
+                      : state === 'ok' && !active ? <Check className="h-3.5 w-3.5" aria-label="terminée" /> : state === 'error' ? '!' : idx + 1}
                   </span>
                   <Icon className="h-4 w-4 shrink-0 hidden md:block" aria-hidden />
                   <span className="whitespace-nowrap">{s.label}</span>
@@ -233,16 +277,16 @@ export default function MissionBuilder({ onLaunched }: { onLaunched?: (result: S
       {/* Compact constraints bar (mobile/tablet) */}
       <div className="lg:hidden grid grid-cols-3 gap-2 text-center">
         {[
-          { label: 'Mass', b: constraints.mass, unit: 'kg', show: !!(spacecraft && launcher) },
-          { label: 'Energy', b: constraints.power, unit: 'W', show: !!spacecraft },
-          { label: 'Budget', b: constraints.budget, unit: '$M', show: draft.budget_allocated > 0 },
+          { label: 'Masse', b: constraints.mass, unit: 'kg', show: !!(spacecraft && launcher) },
+          { label: 'Énergie', b: constraints.power, unit: 'W', show: !!spacecraft },
+          { label: 'Budget', b: constraints.budget, unit: 'M$', show: draft.budget_allocated > 0 },
         ].map(({ label, b, unit, show }) => (
-          <div key={label} className="bg-slate-900/60 border border-slate-800 rounded-lg px-2 py-2">
-            <p className="text-[10px] uppercase tracking-wider text-slate-500">{label}</p>
-            <p className={`text-xs font-mono font-semibold ${!show ? 'text-slate-500' : b.ok ? (b.ratio > 0.9 ? 'text-amber-400' : 'text-emerald-400') : 'text-rose-400'}`}>
+          <div key={label} className="bg-nova-panel/70 border border-nova-line/80 rounded-xl px-2 py-2 backdrop-blur-md">
+            <p className="text-[10px] uppercase tracking-wider text-slate-400">{label}</p>
+            <p className={`text-xs font-mono font-semibold ${!show ? 'text-slate-500' : b.ok ? (b.ratio > 0.9 ? 'text-amber-400' : 'text-green-400') : 'text-rose-400'}`}>
               {show ? `${Math.round(b.ratio * 100)}%` : '—'}
             </p>
-            <p className="text-[10px] text-slate-500 font-mono truncate">{show ? `${fmt(b.used, 0)}/${fmt(b.limit, 0)} ${unit}` : 'pending'}</p>
+            <p className="text-[10px] text-slate-500 font-mono truncate">{show ? `${fmt(b.used, 0)}/${fmt(b.limit, 0)} ${unit}` : 'en attente'}</p>
           </div>
         ))}
       </div>
@@ -264,6 +308,7 @@ export default function MissionBuilder({ onLaunched }: { onLaunched?: (result: S
               result={result}
               resultSource={resultSource}
               launchError={launchError}
+              backendError={backendError}
             />
           )}
 
@@ -273,17 +318,17 @@ export default function MissionBuilder({ onLaunched }: { onLaunched?: (result: S
               type="button"
               disabled={stepIndex === 0}
               onClick={() => goToStep(STEPS[stepIndex - 1].id)}
-              className="inline-flex items-center gap-1 px-4 py-2 rounded-lg border border-slate-800 text-sm text-slate-300 hover:border-slate-600 disabled:opacity-30 disabled:cursor-not-allowed"
+              className="nova-btn-outline gap-1 px-4 py-2 text-sm disabled:opacity-30 disabled:cursor-not-allowed"
             >
-              <ChevronLeft className="h-4 w-4" aria-hidden /> Back
+              <ChevronLeft className="h-4 w-4" aria-hidden /> Retour
             </button>
             {stepIndex < STEPS.length - 1 && (
               <button
                 type="button"
                 onClick={() => goToStep(STEPS[stepIndex + 1].id)}
-                className="inline-flex items-center gap-1 px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-sm font-semibold text-slate-950 transition-colors"
+                className="nova-btn-primary gap-1 px-4 py-2 text-sm"
               >
-                Next: {STEPS[stepIndex + 1].label} <ChevronRight className="h-4 w-4" aria-hidden />
+                Suivant : {STEPS[stepIndex + 1].label} <ChevronRight className="h-4 w-4" aria-hidden />
               </button>
             )}
           </div>
@@ -296,14 +341,14 @@ export default function MissionBuilder({ onLaunched }: { onLaunched?: (result: S
             hasLauncher={!!launcher}
             budgetSet={Number.isFinite(draft.budget_allocated) && draft.budget_allocated > 0}
           />
-          <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 text-xs">
-            <p className="text-slate-400 uppercase tracking-wider font-semibold">Readiness</p>
-            <p className={`mt-1 text-sm font-mono ${errorCount === 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-              {errorCount === 0 ? 'GO FOR LAUNCH' : `${errorCount} blocking issue${errorCount > 1 ? 's' : ''}`}
+          <div className="nova-card p-4 text-xs">
+            <p className="text-slate-400 uppercase tracking-wider font-semibold">Préparation</p>
+            <p className={`mt-1 text-sm font-display font-semibold ${readiness.state === 'ready' ? 'text-green-400' : readiness.state === 'failed' ? 'text-amber-400' : 'text-rose-400'}`}>
+              {readiness.label}
             </p>
-            {errorCount > 0 && step !== 'review' && (
-              <button type="button" onClick={() => goToStep('review')} className="mt-2 text-cyan-400 underline underline-offset-2 hover:text-cyan-300">
-                See all issues
+            {readiness.state !== 'ready' && step !== 'review' && (
+              <button type="button" onClick={() => goToStep('review')} className="relative mt-2 text-nova-sky underline underline-offset-2 hover:text-white">
+                Voir tous les problèmes
               </button>
             )}
           </div>

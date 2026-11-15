@@ -1,4 +1,4 @@
-import { DESTINATIONS } from './catalog';
+import { DESTINATIONS, DESTINATION_LABELS } from './catalog';
 import type {
   ConstraintBudget,
   Instrument,
@@ -48,7 +48,7 @@ export function computeConstraints({ draft, spacecraft, launcher, instruments }:
   };
 }
 
-const fmt = (n: number, digits = 1) => n.toLocaleString('en-US', { maximumFractionDigits: digits });
+const fmt = (n: number, digits = 1) => n.toLocaleString('fr-FR', { maximumFractionDigits: digits });
 
 export function validateMission(ctx: MissionContext, constraints: MissionConstraints): ValidationIssue[] {
   const { draft, spacecraft, launcher, instruments } = ctx;
@@ -58,78 +58,78 @@ export function validateMission(ctx: MissionContext, constraints: MissionConstra
   // --- Mission identity -----------------------------------------------------
   const name = draft.name.trim();
   if (!name) {
-    add({ field: 'name', step: 'mission', severity: 'error', message: 'Give your mission a name.' });
+    add({ field: 'name', step: 'mission', severity: 'error', message: 'Donnez un nom à votre mission.' });
   } else if (name.length < 3) {
-    add({ field: 'name', step: 'mission', severity: 'error', message: 'The mission name must be at least 3 characters.' });
+    add({ field: 'name', step: 'mission', severity: 'error', message: 'Le nom de la mission doit contenir au moins 3 caractères.' });
   } else if (name.length > 60) {
-    add({ field: 'name', step: 'mission', severity: 'error', message: 'The mission name must be 60 characters or fewer.' });
+    add({ field: 'name', step: 'mission', severity: 'error', message: 'Le nom de la mission doit contenir au plus 60 caractères.' });
   } else if (/[<>{}[\]\\/|`~^$#@*=+;"]/.test(name)) {
-    add({ field: 'name', step: 'mission', severity: 'error', message: 'Use only letters, numbers, spaces and - _ \' . in the name.' });
+    add({ field: 'name', step: 'mission', severity: 'error', message: 'Utilisez uniquement des lettres, des chiffres, des espaces et les caractères - _ \' . dans le nom.' });
   }
 
   if (draft.objectives.length === 0) {
-    add({ field: 'objectives', step: 'mission', severity: 'error', message: 'Add at least one scientific objective.' });
+    add({ field: 'objectives', step: 'mission', severity: 'error', message: 'Ajoutez au moins un objectif scientifique.' });
   }
 
   const destination = DESTINATIONS.find(d => d.id === draft.destinationId);
   if (!destination) {
-    add({ field: 'destination', step: 'mission', severity: 'error', message: 'Choose a destination.' });
+    add({ field: 'destination', step: 'mission', severity: 'error', message: 'Choisissez une destination.' });
   }
 
   if (!Number.isFinite(draft.duration_days) || !Number.isInteger(draft.duration_days) || draft.duration_days < 1) {
-    add({ field: 'duration_days', step: 'mission', severity: 'error', message: 'Duration must be a whole number of days, at least 1.' });
+    add({ field: 'duration_days', step: 'mission', severity: 'error', message: 'La durée doit être un nombre entier de jours, au minimum 1.' });
   } else if (draft.duration_days > 3650) {
-    add({ field: 'duration_days', step: 'mission', severity: 'error', message: 'Duration cannot exceed 3,650 days (10 years).' });
+    add({ field: 'duration_days', step: 'mission', severity: 'error', message: 'La durée ne peut pas dépasser 3 650 jours (10 ans).' });
   } else if (destination && draft.duration_days < destination.minDurationDays) {
     add({
       field: 'duration_days', step: 'mission', severity: 'warning',
-      message: `A ${destination.name} mission usually needs at least ${destination.minDurationDays} days (transit + operations).`,
+      message: `Une mission vers la destination « ${DESTINATION_LABELS[destination.id] ?? destination.name} » nécessite généralement au moins ${destination.minDurationDays} jours (transit et opérations).`,
     });
   }
 
   if (!Number.isFinite(draft.budget_allocated) || draft.budget_allocated <= 0) {
-    add({ field: 'budget_allocated', step: 'mission', severity: 'error', message: 'The allocated budget must be greater than $0M.' });
+    add({ field: 'budget_allocated', step: 'mission', severity: 'error', message: 'Le budget alloué doit être supérieur à 0 M$.' });
   } else if (draft.budget_allocated > 10000) {
-    add({ field: 'budget_allocated', step: 'mission', severity: 'error', message: 'The allocated budget cannot exceed $10,000M.' });
+    add({ field: 'budget_allocated', step: 'mission', severity: 'error', message: 'Le budget alloué ne peut pas dépasser 10 000 M$.' });
   }
 
   if (!Number.isFinite(draft.altitude_km) || draft.altitude_km < 50 || draft.altitude_km > 40000) {
-    add({ field: 'altitude_km', step: 'mission', severity: 'error', message: 'Orbit altitude must be between 50 and 40,000 km.' });
+    add({ field: 'altitude_km', step: 'mission', severity: 'error', message: "L'altitude de l'orbite doit être comprise entre 50 et 40 000 km." });
   } else if (draft.destinationId === 'leo' && draft.altitude_km < 160) {
-    add({ field: 'altitude_km', step: 'mission', severity: 'warning', message: 'Below 160 km, atmospheric drag will deorbit the spacecraft within days.' });
+    add({ field: 'altitude_km', step: 'mission', severity: 'warning', message: "Sous 160 km, la traînée atmosphérique fera rentrer l'engin spatial dans l'atmosphère en quelques jours." });
   }
 
   if (!Number.isFinite(draft.inclination_deg) || draft.inclination_deg < 0 || draft.inclination_deg > 180) {
-    add({ field: 'inclination_deg', step: 'mission', severity: 'error', message: 'Inclination must be between 0° and 180°.' });
+    add({ field: 'inclination_deg', step: 'mission', severity: 'error', message: "L'inclinaison doit être comprise entre 0° et 180°." });
   }
 
   // --- Spacecraft -----------------------------------------------------------
   if (!spacecraft) {
-    add({ field: 'spacecraft', step: 'spacecraft', severity: 'error', message: 'Select a spacecraft platform.' });
+    add({ field: 'spacecraft', step: 'spacecraft', severity: 'error', message: 'Sélectionnez une plateforme.' });
   } else {
     if (!Number.isFinite(draft.fuel_mass) || draft.fuel_mass < 0 || draft.fuel_mass > spacecraft.max_fuel_mass) {
       add({
         field: 'fuel_mass', step: 'spacecraft', severity: 'error',
-        message: `Propellant must be between 0 and ${fmt(spacecraft.max_fuel_mass)} kg for the ${spacecraft.name}.`,
+        message: `La masse d'ergols doit être comprise entre 0 et ${fmt(spacecraft.max_fuel_mass)} kg pour la plateforme ${spacecraft.name}.`,
       });
     } else if (draft.fuel_mass === 0 && draft.destinationId !== 'leo') {
-      add({ field: 'fuel_mass', step: 'spacecraft', severity: 'warning', message: 'No propellant loaded: the spacecraft cannot manoeuvre to reach its destination.' });
+      add({ field: 'fuel_mass', step: 'spacecraft', severity: 'warning', message: "Aucun ergol chargé : l'engin spatial ne pourra pas manœuvrer pour atteindre sa destination." });
     }
   }
 
   // --- Launcher -------------------------------------------------------------
   if (!launcher) {
-    add({ field: 'launcher', step: 'launcher', severity: 'error', message: 'Select a launch vehicle.' });
+    add({ field: 'launcher', step: 'launcher', severity: 'error', message: 'Sélectionnez un lanceur.' });
   }
 
   // --- Payload --------------------------------------------------------------
   if (instruments.length === 0) {
-    add({ field: 'instruments', step: 'payload', severity: 'error', message: 'Select at least one scientific instrument.' });
+    add({ field: 'instruments', step: 'payload', severity: 'error', message: 'Sélectionnez au moins un instrument scientifique.' });
   }
   if (spacecraft && instruments.length > spacecraft.max_instruments) {
     add({
       field: 'instruments', step: 'payload', severity: 'error',
-      message: `The ${spacecraft.name} can carry at most ${spacecraft.max_instruments} instruments (${instruments.length} selected).`,
+      message: `La plateforme ${spacecraft.name} peut emporter au plus ${spacecraft.max_instruments} instruments (${instruments.length} sélectionnés).`,
     });
   }
 
@@ -139,10 +139,10 @@ export function validateMission(ctx: MissionContext, constraints: MissionConstra
     if (!mass.ok) {
       add({
         field: 'mass', step: 'launcher', severity: 'error',
-        message: `Spacecraft is ${fmt(-mass.margin)} kg too heavy for ${launcher.name} (${fmt(mass.used)} / ${fmt(mass.limit)} kg). Pick a heavier launcher, reduce propellant or remove instruments.`,
+        message: `L'engin spatial dépasse de ${fmt(-mass.margin)} kg la capacité du lanceur ${launcher.name} (${fmt(mass.used)} / ${fmt(mass.limit)} kg). Choisissez un lanceur plus puissant, réduisez les ergols ou retirez des instruments.`,
       });
     } else if (mass.ratio > LOW_MARGIN_RATIO) {
-      add({ field: 'mass', step: 'launcher', severity: 'warning', message: `Mass margin is only ${fmt(mass.margin)} kg (< 10 %).` });
+      add({ field: 'mass', step: 'launcher', severity: 'warning', message: `La marge de masse n'est que de ${fmt(mass.margin)} kg (< 10 %).` });
     }
   }
 
@@ -151,10 +151,10 @@ export function validateMission(ctx: MissionContext, constraints: MissionConstra
     if (!power.ok) {
       add({
         field: 'power', step: 'payload', severity: 'error',
-        message: `Power deficit of ${fmt(-power.margin)} W (${fmt(power.used)} W needed, ${fmt(power.limit)} W generated). Remove power-hungry instruments or choose a larger platform.`,
+        message: `Déficit électrique de ${fmt(-power.margin)} W (${fmt(power.used)} W nécessaires, ${fmt(power.limit)} W produits). Retirez des instruments énergivores ou choisissez une plateforme plus puissante.`,
       });
     } else if (power.ratio > LOW_MARGIN_RATIO) {
-      add({ field: 'power', step: 'payload', severity: 'warning', message: `Power margin is only ${fmt(power.margin)} W (< 10 %).` });
+      add({ field: 'power', step: 'payload', severity: 'warning', message: `La marge électrique n'est que de ${fmt(power.margin)} W (< 10 %).` });
     }
   }
 
@@ -163,10 +163,10 @@ export function validateMission(ctx: MissionContext, constraints: MissionConstra
     if (!b.ok) {
       add({
         field: 'budget', step: 'review', severity: 'error',
-        message: `Mission is $${fmt(-b.margin)}M over budget ($${fmt(b.used)}M / $${fmt(b.limit)}M). Increase the budget or choose cheaper components.`,
+        message: `La mission dépasse le budget de ${fmt(-b.margin)} M$ (${fmt(b.used)} / ${fmt(b.limit)} M$). Augmentez le budget ou choisissez des composants moins chers.`,
       });
     } else if (b.ratio > LOW_MARGIN_RATIO) {
-      add({ field: 'budget', step: 'review', severity: 'warning', message: `Budget reserve is only $${fmt(b.margin)}M (< 10 %).` });
+      add({ field: 'budget', step: 'review', severity: 'warning', message: `La réserve budgétaire n'est que de ${fmt(b.margin)} M$ (< 10 %).` });
     }
   }
 
@@ -227,6 +227,6 @@ export function estimateLocally(req: MissionRequest, c: MissionConstraints): Sim
     },
     recommendations: success
       ? []
-      : ['Reduce spacecraft payload mass', 'Optimize scientific instrument power consumption', 'Select a heavier launcher or increase budget.'],
+      : ['Réduire la masse de la charge utile.', 'Optimiser la consommation électrique des instruments scientifiques.', 'Choisir un lanceur plus puissant ou augmenter le budget.'],
   };
 }
