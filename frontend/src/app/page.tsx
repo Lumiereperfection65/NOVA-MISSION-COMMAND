@@ -56,7 +56,14 @@ export default function Home() {
 
       <main>
         {activeTab === 'home' && (
-          <HomePage onNavigate={navigate} activities={activities} activeMissions={3} systemsOk={systemsOk} />
+          <HomePage
+            onNavigate={navigate}
+            activities={activities}
+            activeMissions={3}
+            systemsOk={systemsOk}
+            lastResult={lastResult}
+            lastMissionName={lastMissionName}
+          />
         )}
 
         {activeTab === 'missions' && (
