@@ -52,7 +52,7 @@ function Greeting() {
 export default function Header({ active, onNavigate }: { active: AppTab; onNavigate: (tab: AppTab) => void }) {
   return (
     <>
-      <header className="relative z-20 border-b border-nova-line/70 bg-nova-bg/55 backdrop-blur-md">
+      <header className="sticky top-0 z-30 border-b border-white/[0.06] bg-[#050b19]/80 shadow-[0_12px_40px_-30px_rgba(79,176,255,.55)] backdrop-blur-xl">
         <div className="mx-auto max-w-[1600px] flex items-center justify-between gap-4 px-4 sm:px-8 xl:px-12 h-20 sm:h-24 xl:h-[138px]">
           <Brand />
 
@@ -68,8 +68,8 @@ export default function Header({ active, onNavigate }: { active: AppTab; onNavig
                     type="button"
                     onClick={() => onNavigate(item.id)}
                     aria-current={isActive ? 'page' : undefined}
-                    className={`group relative flex w-[118px] xl:w-[144px] flex-col items-center justify-center gap-2 transition-colors ${
-                      isActive ? 'text-nova-sky' : 'text-slate-300 hover:text-white'
+                    className={`group relative flex w-[118px] xl:w-[144px] flex-col items-center justify-center gap-2 transition-all duration-300 ${
+                      isActive ? 'text-nova-sky' : 'text-slate-300 hover:bg-white/[0.025] hover:text-white'
                     }`}
                   >
                     <Icon
@@ -97,7 +97,7 @@ export default function Header({ active, onNavigate }: { active: AppTab; onNavig
       {/* Mobile / tablet bottom tab bar */}
       <nav
         aria-label="Navigation principale"
-        className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-nova-line/80 bg-nova-bg/90 backdrop-blur-md pb-[env(safe-area-inset-bottom)]"
+        className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-white/[0.08] bg-[#050b19]/90 shadow-[0_-12px_40px_-30px_rgba(79,176,255,.6)] backdrop-blur-xl pb-[env(safe-area-inset-bottom)]"
       >
         <div className="grid grid-cols-5">
           {NAV_ITEMS.map(item => {

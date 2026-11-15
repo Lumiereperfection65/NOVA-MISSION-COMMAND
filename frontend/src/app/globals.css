@@ -8,14 +8,19 @@ body {
   min-height: 100%;
 }
 
+html { scroll-behavior: smooth; }
+body { background-image: radial-gradient(ellipse at 50% -20%, rgba(43,140,255,.18), transparent 55%); }
+
 @layer components {
   /* Glassy navy card used across the app (stats, activities, panels). */
   .nova-card {
-    @apply relative overflow-hidden rounded-2xl border border-nova-line/80 bg-nova-panel/70 backdrop-blur-md;
+    @apply relative overflow-hidden rounded-2xl border border-nova-line/80 bg-[#09152bd9] backdrop-blur-xl transition-all duration-300;
     box-shadow:
       0 18px 40px -18px rgba(0, 0, 0, 0.85),
       inset 0 1px 0 rgba(140, 185, 255, 0.08);
   }
+
+  .nova-card:hover { border-color: rgba(79,176,255,.38); box-shadow: 0 22px 48px -20px rgba(0,0,0,.85), 0 0 28px -14px rgba(79,176,255,.45), inset 0 1px 0 rgba(140,185,255,.12); transform: translateY(-2px); }
 
   .nova-card::before {
     content: '';
@@ -25,6 +30,19 @@ body {
     pointer-events: none;
     background: linear-gradient(135deg, rgba(79, 176, 255, 0.07), transparent 45%);
   }
+
+  .nova-card::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0;
+    background: linear-gradient(115deg, transparent 25%, rgba(110,190,255,.07) 48%, transparent 68%);
+    transform: translateX(-35%);
+    transition: opacity .35s ease, transform .7s ease;
+  }
+  .nova-card:hover::after { opacity: 1; transform: translateX(35%); }
 
   /* Primary call to action (blue gradient pill). */
   .nova-btn-primary {
@@ -36,7 +54,8 @@ body {
   }
   .nova-btn-primary:hover {
     filter: brightness(1.1);
-    transform: translateY(-1px);
+    transform: translateY(-2px) scale(1.01);
+    box-shadow: 0 14px 36px -8px rgba(43, 140, 255, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.3);
   }
 
   /* Outlined secondary button. */
@@ -45,6 +64,7 @@ body {
   }
   .nova-btn-outline:hover {
     @apply border-nova-sky bg-nova-blue/10;
+    transform: translateY(-2px);
   }
 
   .text-nova-gradient {
@@ -63,11 +83,17 @@ body {
   scrollbar-width: none;
 }
 
+@keyframes nova-enter { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+main { animation: nova-enter .55s cubic-bezier(.2,.7,.2,1) both; }
+::selection { color: white; background: rgba(43,140,255,.55); }
+button:focus-visible, a:focus-visible { outline: 2px solid #7cc4ff; outline-offset: 3px; }
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation: none !important;
     transition: none !important;
+    scroll-behavior: auto !important;
   }
 }

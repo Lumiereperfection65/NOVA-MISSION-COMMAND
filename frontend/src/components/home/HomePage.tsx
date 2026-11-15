@@ -110,8 +110,8 @@ function KpiCard({
   extra?: React.ReactNode;
 }) {
   return (
-    <article className="nova-card min-h-[132px] p-5 xl:px-6 flex items-center gap-4">
-      <div className="shrink-0">{icon}</div>
+    <article className="nova-card group min-h-[144px] p-5 xl:px-6 flex items-center gap-4">
+      <div className="relative z-10 flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.035] shadow-inner transition duration-300 group-hover:scale-105 group-hover:border-nova-sky/25">{icon}</div>
       <div className="relative z-10 min-w-0">
         <h2 className="text-base xl:text-lg font-semibold text-white">{title}</h2>
         <p className="mt-1 font-display text-[34px] xl:text-[40px] font-bold leading-none text-white">{value}</p>
@@ -177,15 +177,15 @@ export default function HomePage({
           </p>
           <h1 className="mt-3 font-display leading-[1.08]">
             <span className="block text-[28px] sm:text-[38px] xl:text-[44px] font-semibold text-white">Centre de commandement</span>
-            <span className="block text-[30px] sm:text-[42px] xl:text-[50px] font-extrabold tracking-wide text-white drop-shadow-[0_0_24px_rgba(79,176,255,0.35)]">
+            <span className="block text-[30px] sm:text-[42px] xl:text-[50px] font-extrabold tracking-wide text-nova-gradient drop-shadow-[0_0_24px_rgba(79,176,255,0.35)]">
               NOVA MISSION COMMAND
             </span>
           </h1>
           <p className="mt-3 sm:mt-4 text-base sm:text-xl xl:text-[22px] leading-snug text-slate-100/95 max-w-[540px]">
-            Télémétrie, indicateurs de performance et santé des systèmes — un tableau de bord immersif pour piloter vos missions.
+            Une vue claire sur vos missions, vos systèmes et leur télémétrie. Tout le programme spatial, sous contrôle.
           </p>
 
-          <div className="mt-5 flex flex-wrap items-center gap-3 text-sm">
+          <div className="mt-5 flex flex-wrap items-center gap-3 text-sm animate-[nova-enter_.65s_.12s_both]">
             <span className={`rounded-lg border px-3 py-1.5 font-display text-sm font-bold ${STATUS_PILL[control.label]}`}>
               {control.label}
             </span>
@@ -196,7 +196,7 @@ export default function HomePage({
             </time>
           </div>
 
-          <div className="mt-7 sm:mt-8 flex flex-col sm:flex-row gap-3 sm:gap-5">
+          <div className="mt-7 sm:mt-8 flex flex-col sm:flex-row gap-3 sm:gap-5 animate-[nova-enter_.7s_.2s_both]">
             <button type="button" onClick={() => onNavigate('missions')} className="nova-btn-primary text-lg">
               <Rocket className="h-5 w-5" aria-hidden />
               Lancer une mission
@@ -210,7 +210,7 @@ export default function HomePage({
         </div>
       </section>
 
-      <section aria-label="Indicateurs de performance" className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 xl:gap-5">
+      <section aria-label="Indicateurs de performance" className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 xl:gap-5 animate-[nova-enter_.7s_.1s_both]">
         <KpiCard
           title="Missions actives"
           value={String(activeMissions)}
@@ -256,15 +256,14 @@ export default function HomePage({
         />
       </section>
 
-        {/* Mission Statistics Row */}
-        <section className="mt-6 sm:mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4 xl:gap-6">
+        <section aria-label="Données de mission" className="mt-6 sm:mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4 xl:gap-6">
           <article className="nova-card p-5 sm:p-6">
             <header className="flex items-center gap-2 mb-4">
               <Clock className="h-5 w-5 text-nova-sky" aria-hidden />
               <h3 className="font-semibold text-white">Temps de mission écoulé</h3>
             </header>
             <div className="text-[32px] xl:text-[40px] font-display font-bold text-white tracking-tight">04:12:38</div>
-            <p className="mt-2 text-xs text-slate-400">Depuis le lancement de Arès-1</p>
+            <p className="mt-2 text-xs text-slate-400">Depuis le lancement d’Arès-1</p>
           </article>
           <article className="nova-card p-5 sm:p-6">
             <header className="flex items-center gap-2 mb-4">
@@ -280,7 +279,7 @@ export default function HomePage({
               <h3 className="font-semibold text-white">Efficacité énergétique</h3>
             </header>
             <div className="text-[32px] xl:text-[40px] font-display font-bold text-white tracking-tight">94.2%</div>
-            <p className="mt-2 text-xs text-slate-400">Bilan power nominal</p>
+            <p className="mt-2 text-xs text-slate-400">Bilan énergétique nominal</p>
           </article>
         </section>
 
@@ -299,7 +298,7 @@ export default function HomePage({
               </p>
             )}
           </header>
-          <div className="mt-4 overflow-x-auto">
+          <div className="mt-4 overflow-x-auto rounded-xl border border-white/[0.06] bg-black/10 px-3">
             <table className="w-full min-w-[520px] text-left text-sm">
               <caption className="sr-only">Missions suivies par le centre de contrôle</caption>
               <thead className="text-[11px] uppercase tracking-wider text-slate-400">
@@ -312,7 +311,7 @@ export default function HomePage({
               </thead>
               <tbody>
                 {fleet.map(m => (
-                  <tr key={m.id} className="border-b border-white/[0.04]">
+                  <tr key={m.id} className="border-b border-white/[0.04] transition-colors hover:bg-white/[0.025]">
                     <td className="py-3 font-medium text-white">{m.name}</td>
                     <td className="py-3 text-slate-300">{m.destination}</td>
                     <td className="py-3 text-slate-300">{m.phase}</td>
@@ -349,7 +348,7 @@ export default function HomePage({
             <li className="flex items-start gap-3 rounded-lg bg-white/[0.025] p-3">
               <span className="shrink-0 h-2 w-2 rounded-full bg-sky-400 mt-1" aria-hidden />
               <div className="min-w-0">
-                <p className="text-sm text-slate-200">Nyanga-2 — télémetrie nominal</p>
+                <p className="text-sm text-slate-200">Nyanga-2 — télémétrie nominale</p>
                 <time className="text-[11px] text-slate-400">Il y a 6 h</time>
               </div>
             </li>
