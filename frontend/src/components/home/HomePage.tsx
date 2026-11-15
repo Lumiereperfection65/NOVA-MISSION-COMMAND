@@ -1,17 +1,20 @@
 "use client";
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  AlertTriangle,
   ArrowRight,
   BarChart3,
   Check,
   Clock,
   Radio,
   Rocket,
+  Satellite,
   Shield,
   Star,
   Target,
   UserRound,
   Users,
+  Zap,
 } from 'lucide-react';
 import type { AppTab } from '@/components/layout/Header';
 import SpaceStation from '@/components/visuals/SpaceStation';
@@ -253,6 +256,34 @@ export default function HomePage({
         />
       </section>
 
+        {/* Mission Statistics Row */}
+        <section className="mt-6 sm:mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4 xl:gap-6">
+          <article className="nova-card p-5 sm:p-6">
+            <header className="flex items-center gap-2 mb-4">
+              <Clock className="h-5 w-5 text-nova-sky" aria-hidden />
+              <h3 className="font-semibold text-white">Temps de mission écoulé</h3>
+            </header>
+            <div className="text-[32px] xl:text-[40px] font-display font-bold text-white tracking-tight">04:12:38</div>
+            <p className="mt-2 text-xs text-slate-400">Depuis le lancement de Arès-1</p>
+          </article>
+          <article className="nova-card p-5 sm:p-6">
+            <header className="flex items-center gap-2 mb-4">
+              <Target className="h-5 w-5 text-amber-400" aria-hidden />
+              <h3 className="font-semibold text-white">Distance parcourue</h3>
+            </header>
+            <div className="text-[32px] xl:text-[40px] font-display font-bold text-white tracking-tight">384 400 km</div>
+            <p className="mt-2 text-xs text-slate-400">Orbite lunaire atteinte</p>
+          </article>
+          <article className="nova-card p-5 sm:p-6">
+            <header className="flex items-center gap-2 mb-4">
+              <Zap className="h-5 w-5 text-green-400" aria-hidden />
+              <h3 className="font-semibold text-white">Efficacité énergétique</h3>
+            </header>
+            <div className="text-[32px] xl:text-[40px] font-display font-bold text-white tracking-tight">94.2%</div>
+            <p className="mt-2 text-xs text-slate-400">Bilan power nominal</p>
+          </article>
+        </section>
+
       <section className="mt-4 xl:mt-5 grid grid-cols-1 xl:grid-cols-[minmax(0,1.6fr)_minmax(280px,1fr)] gap-4 xl:gap-5">
         <TelemetryBoard lastResult={lastResult} />
         <SystemHealth systemsOk={systemsOk} lastResult={lastResult} />
@@ -293,6 +324,36 @@ export default function HomePage({
               </tbody>
             </table>
           </div>
+        </article>
+
+        <article className="nova-card p-5 sm:p-6">
+          <header className="flex items-center gap-2 mb-4">
+            <AlertTriangle className="h-5 w-5 text-amber-400" aria-hidden />
+            <h3 className="font-semibold text-white">Alertes récentes</h3>
+          </header>
+          <ul className="space-y-3">
+            <li className="flex items-start gap-3 rounded-lg bg-white/[0.025] p-3">
+              <span className="shrink-0 h-2 w-2 rounded-full bg-amber-500 mt-1" aria-hidden />
+              <div className="min-w-0">
+                <p className="text-sm text-slate-200">Kongo Eye — fenêtre de tir repoussée</p>
+                <time className="text-[11px] text-slate-400">Il y a 2 h</time>
+              </div>
+            </li>
+            <li className="flex items-start gap-3 rounded-lg bg-white/[0.025] p-3">
+              <span className="shrink-0 h-2 w-2 rounded-full bg-green-500 mt-1" aria-hidden />
+              <div className="min-w-0">
+                <p className="text-sm text-slate-200">Arès-1 — insertion orbitale confirmée</p>
+                <time className="text-[11px] text-slate-400">Il y a 4 h</time>
+              </div>
+            </li>
+            <li className="flex items-start gap-3 rounded-lg bg-white/[0.025] p-3">
+              <span className="shrink-0 h-2 w-2 rounded-full bg-sky-400 mt-1" aria-hidden />
+              <div className="min-w-0">
+                <p className="text-sm text-slate-200">Nyanga-2 — télémetrie nominal</p>
+                <time className="text-[11px] text-slate-400">Il y a 6 h</time>
+              </div>
+            </li>
+          </ul>
         </article>
 
         <article className="nova-card p-5 sm:p-6">
